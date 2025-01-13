@@ -1,2 +1,2 @@
 # scripts
-various scripts of various languages
+various small projects of various languages
