@@ -8,7 +8,7 @@ from translate_text import translate_text
 # Group words by line using block_num and line_num
 def group_lines(data: Dict) -> defaultdict[Any, dict[str, float | int | str]]:
   
-  lines = defaultdict(lambda: {"x": float("inf"), "y": float("inf"), "w": 0, "h": 0, "text": ""})
+  lines = defaultdict(lambda: {"x": float("inf"), "y": float("inf"), "w": 0, "h": 0, "text": "", "font_size": 0})
 
   for i in range(len(data['text'])):
       if data['text'][i].strip():  # Ignore empty entries
@@ -20,9 +20,10 @@ def group_lines(data: Dict) -> defaultdict[Any, dict[str, float | int | str]]:
           # Update bounding box for the entire line
           lines[key]["x"] = min(lines[key]["x"], x)
           lines[key]["y"] = min(lines[key]["y"], y)
-          lines[key]["w"] = max(lines[key]["w"], x + w - lines[key]["x"])
+          lines[key]["w"] = ( lines[key]["w"] + (x + w) - lines[key]["x"] ) /2
           lines[key]["h"] = max(lines[key]["h"], y + h - lines[key]["y"])
           lines[key]["text"] += " " + data['text'][i]  # Concatenate words
+          lines[key]["font_size"] = (lines[key]["font_size"] + h)/2
   
   return lines
 
@@ -30,7 +31,7 @@ def group_lines(data: Dict) -> defaultdict[Any, dict[str, float | int | str]]:
 def draw_text(
       lines: defaultdict[Any, dict[str, float | int | str]], 
       image: ImageFile,
-      font: ImageFont
+      font: str
       ) -> ImageFile:
   
   draw = ImageDraw.Draw(image)
@@ -44,21 +45,25 @@ def draw_text(
           continue
 
       translated_text = translate_text(line["text"])
-      # translated_text = "RED"    
+    #   translated_text = "Contentment is the key to happiness"
       
       x, y, w, h = line["x"], line["y"], line["w"], line["h"]
+      
+      new_font = ImageFont.truetype(font, size=10)
 
-      # Draw a white rectangle to erase the original text
+    # text_length = (draw.textlength(translated_text, font=new_font))
+    # x1,y1,w1,h1 = draw.textbbox((x,y), translated_text, new_font)
+      
       draw.rectangle(((x, y), (x + w, y + h)), fill="white")
-
+      
       # Replace the full line with translated text
-      draw.text((x, y), translated_text, fill="black", font=font)
+      draw.multiline_text((x, y), translated_text, fill="black", font=new_font, align='center')
   
   return image
 
 def replace_text(image: ImageFile, output_file: str) -> None:
 
-  font = ImageFont.truetype("arial.ttf", size=20)
+  font ="arial.ttf"
 
   # Get bounding box data for detected text (word-level detection)
   data = pytesseract.image_to_data(image, lang="eng+chi_sim", output_type=pytesseract.Output.DICT)
